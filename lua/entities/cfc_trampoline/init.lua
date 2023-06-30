@@ -99,6 +99,8 @@ end
 
 local world = game.GetWorld()
 hook.Add( "GetFallDamage", "Trampoline_FallDamage", function( ply )
+    if not IsValid( ply ) then return end
+
     local groundEnt = ply:GetGroundEntity()
     if not groundEnt then return end
     if groundEnt == world then return end
