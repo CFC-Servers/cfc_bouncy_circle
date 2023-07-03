@@ -8,13 +8,13 @@ include( "shared.lua" )
 -- this is so we get slightly above the trampoline
 -- because the GetPos returns a position near the ground, we get
 -- the point [self:GetUp()] * [HEIGHT_TO_BOUNCY_SURFACE] from it
-local HEIGHT_TO_BOUNCY_SURFACE = 31
+local HEIGHT_TO_BOUNCY_SURFACE = 34.5
 
 local MINIMUM_BOUNCE_SPEED = 320
 
 -- maximum radius the trampoline will allow
 -- this is used in DistToSqr
-local MAXIMUM_RADIUS = 1900
+local MAXIMUM_RADIUS = 48 ^ 2
 
 local function isBouncyPart( position, trampoline )
     if not IsValid( trampoline ) then return end
@@ -23,11 +23,13 @@ local function isBouncyPart( position, trampoline )
     local trampolineUp = trampoline:GetUp()
     local bouncyOrigin = trampolinePos + trampolineUp * HEIGHT_TO_BOUNCY_SURFACE
 
-    if position:DistToSqr( bouncyOrigin ) > MAXIMUM_RADIUS then return false end -- Too far from center of the bouncy part
+    local dist = position:DistToSqr( bouncyOrigin )
+    if dist > MAXIMUM_RADIUS then return false end -- Too far from center of the bouncy part
 
     local bouncyToPos = ( position - bouncyOrigin ):GetNormalized()
 
-    if bouncyToPos:Dot( trampolineUp ) <= 0 then return false end -- Hitting from below
+    local dot = bouncyToPos:Dot( trampolineUp )
+    if dot <= 0 then return false end -- Hitting from below
 
     return true
 end
@@ -80,10 +82,8 @@ function ENT:PhysicsCollide( colData, selfPhys )
 end
 
 function ENT:Initialize()
-    self:SetModel( "models/cfc_trampoline/trampoline.mdl" )
+    self:SetModel( "models/cfc/trampoline.mdl" )
     self:SetTrigger( true )
-
-    self:SetColor( Color( 200, 255, 200 ) )
 
     self:SetMoveType( MOVETYPE_VPHYSICS )
     self:SetSolid( SOLID_VPHYSICS )
