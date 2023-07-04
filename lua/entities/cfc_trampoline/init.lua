@@ -15,6 +15,7 @@ local HEIGHT_TO_BOUNCY_SURFACE = 34.5
 -- this is used in DistToSqr
 local MAXIMUM_RADIUS = 48 ^ 2
 
+local IsValid = IsValid
 local function isBouncyPart( position, trampoline )
     if not IsValid( trampoline ) then return end
 
@@ -51,18 +52,13 @@ function ENT:PhysicsCollide( colData, selfPhys )
     local pos = isPlayer and ent:GetGroundEntity() == self and ent:GetPos() or colData.HitPos
 
     local shouldBounce = isBouncyPart( pos, self )
-
     if not shouldBounce then return end
 
     local isUnfrozen = selfPhys:IsMotionEnabled()
-
     local up = self:GetUp()
     local entVelocity = colData.TheirOldVelocity
-
     local collidingSpeed = math.max( entVelocity:Length(), MIN_SPEED:GetFloat() )
-
     local appliedVelocity = vector_origin
-
     local otherEntPhys = ent:GetPhysicsObject()
     if not IsValid( otherEntPhys ) then return end
 
@@ -100,13 +96,12 @@ function ENT:Initialize()
 
     self:SetMoveType( MOVETYPE_VPHYSICS )
     self:SetSolid( SOLID_VPHYSICS )
-
     self:PhysicsInit( SOLID_VPHYSICS )
 
     self:PhysWake()
     local phys = self:GetPhysicsObject()
 
-    if not IsValid( phys ) then return end
+    if not phys:IsValid() then return end
     phys:SetMass( 250 )
 end
 
