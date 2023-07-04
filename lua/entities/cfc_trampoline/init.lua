@@ -1,4 +1,5 @@
-resource.AddFile( "models/cfc_trampoline/trampoline.mdl" )
+resource.AddFile( "models/cfc/trampoline.mdl" )
+resource.AddFile( "materials/models/cfc/trampoline.vmt" )
 
 AddCSLuaFile( "cl_init.lua" )
 AddCSLuaFile( "shared.lua" )
@@ -9,8 +10,6 @@ include( "shared.lua" )
 -- because the GetPos returns a position near the ground, we get
 -- the point [self:GetUp()] * [HEIGHT_TO_BOUNCY_SURFACE] from it
 local HEIGHT_TO_BOUNCY_SURFACE = 34.5
-
-local MINIMUM_BOUNCE_SPEED = 320
 
 -- maximum radius the trampoline will allow
 -- this is used in DistToSqr
@@ -34,6 +33,12 @@ local function isBouncyPart( position, trampoline )
     return true
 end
 
+local MIN_SPEED = CreateConVar( "cfc_trampoline_min_speed", 320, FCVAR_NONE, "Minimum required speed for a player to get bounced", 0, 50000 )
+local BOUNCE_MULT = CreateConVar( "cfc_trampoline_bounce_mult", 0.8, FCVAR_NONE, "How much a player will be bounced up relative to their falling velocity", 0, 50000 )
+local BOUNCE_MULT_JUMPING = CreateConVar( "cfc_trampoline_bounce_mult_jumping", 1.2, FCVAR_NONE, "How much a player will be bounced up relative to their falling velocity while holding their jump button", 0, 50000 )
+local BOUNCE_MAX = CreateConVar( "cfc_trampoline_bounce_max", 1500, FCVAR_NONE, "Maximum resulting speed of a bounce", 0, 50000 )
+local BOUNCE_RECOIL = CreateConVar( "cfc_trampoline_bounce_mult_recoil", 0.4, FCVAR_NONE, "The force multiplier applied in the opposite direction when bouncing on an unfrozen trampoline", 0, 50000 )
+
 function ENT:PhysicsCollide( colData, selfPhys )
     local ent = colData.HitEntity
     if not IsValid( ent ) then return end
@@ -51,33 +56,41 @@ function ENT:PhysicsCollide( colData, selfPhys )
 
     local isUnfrozen = selfPhys:IsMotionEnabled()
 
-    local collidingVelocity = math.max( colData.TheirOldVelocity:Length(), MINIMUM_BOUNCE_SPEED )
-
     local up = self:GetUp()
-    local velocity = up * collidingVelocity
+    local entVelocity = colData.TheirOldVelocity
+
+    local collidingSpeed = math.max( entVelocity:Length(), MIN_SPEED:GetFloat() )
+
+    local appliedVelocity = vector_origin
+
+    local otherEntPhys = ent:GetPhysicsObject()
+    if not IsValid( otherEntPhys ) then return end
+
+    local otherEntMass = otherEntPhys:GetMass()
+
     if isPlayer then
         local isHoldingJump = ent:KeyDown( IN_JUMP )
 
+        local bounceMult = isHoldingJump and BOUNCE_MULT_JUMPING:GetFloat() or BOUNCE_MULT:GetFloat()
+        local bounceSpeed = math.min( collidingSpeed * bounceMult, BOUNCE_MAX:GetFloat() )
+
         if isUnfrozen then
             -- hacky solution to bounce players when the trampoline is unfrozen
-            local phys = ent:GetPhysicsObject()
-            if IsValid( phys ) then
-                phys:SetPos( phys:GetPos() + up * 5 )
-            end
-
+            otherEntPhys:SetPos( otherEntPhys:GetPos() + up * 5 )
         end
-        local vel = velocity * ( isHoldingJump and 1.2 or 0.8 )
 
-        ent:SetVelocity( vel )
+        appliedVelocity = up * bounceSpeed
+
+        ent:SetVelocity( appliedVelocity )
     elseif not ent:IsNPC() then
-        local phys = ent:GetPhysicsObject()
-        if not IsValid( phys ) then return end
+        local bounceSpeed = math.min( collidingSpeed, BOUNCE_MAX:GetFloat() )
+        appliedVelocity = up * bounceSpeed
 
-        phys:ApplyForceCenter( velocity * phys:GetMass() )
+        otherEntPhys:ApplyForceCenter( appliedVelocity * otherEntMass )
     end
 
     if isUnfrozen then
-        selfPhys:ApplyForceCenter( -velocity * 0.4 * selfPhys:GetMass() )
+        selfPhys:ApplyForceCenter( -appliedVelocity * BOUNCE_RECOIL:GetFloat() * otherEntMass )
     end
 end
 
