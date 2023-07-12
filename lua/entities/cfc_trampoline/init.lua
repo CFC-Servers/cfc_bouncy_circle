@@ -15,12 +15,11 @@ local HEIGHT_TO_BOUNCY_SURFACE = 34.5
 -- this is used in DistToSqr
 local MAXIMUM_RADIUS = 48 ^ 2
 
-local IsValid = IsValid
-local function isBouncyPart( position, trampoline )
-    if not IsValid( trampoline ) then return end
+function ENT:isBouncyPart( position )
+    if not IsValid( self ) then return end
 
-    local trampolinePos = trampoline:GetPos()
-    local trampolineUp = trampoline:GetUp()
+    local trampolinePos = self:GetPos()
+    local trampolineUp = self:GetUp()
     local bouncyOrigin = trampolinePos + trampolineUp * HEIGHT_TO_BOUNCY_SURFACE
 
     local dist = position:DistToSqr( bouncyOrigin )
@@ -34,11 +33,11 @@ local function isBouncyPart( position, trampoline )
     return true
 end
 
-local MIN_SPEED = CreateConVar( "cfc_trampoline_min_speed", 320, FCVAR_NONE, "Minimum required speed for a player to get bounced", 0, 50000 )
-local BOUNCE_MULT = CreateConVar( "cfc_trampoline_bounce_mult", 0.8, FCVAR_NONE, "How much a player will be bounced up relative to their falling velocity", 0, 50000 )
-local BOUNCE_MULT_JUMPING = CreateConVar( "cfc_trampoline_bounce_mult_jumping", 1.2, FCVAR_NONE, "How much a player will be bounced up relative to their falling velocity while holding their jump button", 0, 50000 )
-local BOUNCE_MAX = CreateConVar( "cfc_trampoline_bounce_max", 1500, FCVAR_NONE, "Maximum resulting speed of a bounce", 0, 50000 )
-local BOUNCE_RECOIL = CreateConVar( "cfc_trampoline_bounce_mult_recoil", 0.4, FCVAR_NONE, "The force multiplier applied in the opposite direction when bouncing on an unfrozen trampoline", 0, 50000 )
+local MIN_SPEED = CreateConVar( "cfc_trampoline_min_speed", 320, FCVAR_ARCHIVE + FCVAR_PROTECTED, "Minimum required speed for a player to get bounced", 0, 50000 )
+local BOUNCE_MULT = CreateConVar( "cfc_trampoline_bounce_mult", 0.8, FCVAR_ARCHIVE + FCVAR_PROTECTED, "How much a player will be bounced up relative to their falling velocity", 0, 50000 )
+local BOUNCE_MULT_JUMPING = CreateConVar( "cfc_trampoline_bounce_mult_jumping", 1.2, FCVAR_ARCHIVE + FCVAR_PROTECTED, "How much a player will be bounced up relative to their falling velocity while holding their jump button", 0, 50000 )
+local BOUNCE_MAX = CreateConVar( "cfc_trampoline_bounce_max", 1500, FCVAR_ARCHIVE + FCVAR_PROTECTED, "Maximum resulting speed of a bounce", 0, 50000 )
+local BOUNCE_RECOIL = CreateConVar( "cfc_trampoline_bounce_mult_recoil", 0.4, FCVAR_ARCHIVE + FCVAR_PROTECTED, "The force multiplier applied in the opposite direction when bouncing on an unfrozen trampoline", 0, 50000 )
 
 function ENT:PhysicsCollide( colData, selfPhys )
     local ent = colData.HitEntity
@@ -51,14 +50,19 @@ function ENT:PhysicsCollide( colData, selfPhys )
     -- otherwise, we use colData.HitPos
     local pos = isPlayer and ent:GetGroundEntity() == self and ent:GetPos() or colData.HitPos
 
-    local shouldBounce = isBouncyPart( pos, self )
+    local shouldBounce = self:isBouncyPart( pos )
+
     if not shouldBounce then return end
 
     local isUnfrozen = selfPhys:IsMotionEnabled()
+
     local up = self:GetUp()
     local entVelocity = colData.TheirOldVelocity
+
     local collidingSpeed = math.max( entVelocity:Length(), MIN_SPEED:GetFloat() )
+
     local appliedVelocity = vector_origin
+
     local otherEntPhys = ent:GetPhysicsObject()
     if not IsValid( otherEntPhys ) then return end
 
@@ -90,18 +94,34 @@ function ENT:PhysicsCollide( colData, selfPhys )
     end
 end
 
+function ENT:SpawnFunction( ply, tr )
+    if not tr.Hit then return end
+    if not ply:CheckLimit( "cfc_trampoline" ) then return end
+
+    local ent = ents.Create( self.ClassName )
+    ent:SetPos( tr.HitPos )
+    ent:SetAngles( Angle( 0, ply:EyeAngles().y, 0 ) )
+    ent:Spawn()
+    ent:Activate()
+
+    ply:AddCount( "cfc_trampoline", ent )
+
+    return ent
+end
+
 function ENT:Initialize()
     self:SetModel( "models/cfc/trampoline.mdl" )
     self:SetTrigger( true )
 
     self:SetMoveType( MOVETYPE_VPHYSICS )
     self:SetSolid( SOLID_VPHYSICS )
+
     self:PhysicsInit( SOLID_VPHYSICS )
 
     self:PhysWake()
     local phys = self:GetPhysicsObject()
 
-    if not phys:IsValid() then return end
+    if not IsValid( phys ) then return end
     phys:SetMass( 250 )
 end
 
@@ -115,7 +135,7 @@ hook.Add( "GetFallDamage", "Trampoline_FallDamage", function( ply )
 
     if not groundEnt.IsTrampoline then return end
 
-    local isBouncy = isBouncyPart( ply:GetPos(), groundEnt )
+    local isBouncy = groundEnt:isBouncyPart( ply:GetPos() )
     if not isBouncy then return end
 
     return 0
