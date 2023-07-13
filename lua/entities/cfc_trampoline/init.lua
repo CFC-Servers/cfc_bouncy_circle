@@ -136,7 +136,6 @@ hook.Add( "GetFallDamage", "Trampoline_FallDamage", function( ply )
     local groundEnt = ply:GetGroundEntity()
     if not groundEnt then return end
     if groundEnt == world then return end
-
     if not groundEnt.IsTrampoline then return end
 
     local isBouncy = groundEnt:isBouncyPart( ply:GetPos() )
