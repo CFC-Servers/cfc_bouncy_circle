@@ -33,11 +33,14 @@ function ENT:isBouncyPart( position )
     return true
 end
 
-local MIN_SPEED = CreateConVar( "cfc_trampoline_min_speed", 320, FCVAR_ARCHIVE + FCVAR_PROTECTED, "Minimum required speed for a player to get bounced", 0, 50000 )
-local BOUNCE_MULT = CreateConVar( "cfc_trampoline_bounce_mult", 0.8, FCVAR_ARCHIVE + FCVAR_PROTECTED, "How much a player will be bounced up relative to their falling velocity", 0, 50000 )
-local BOUNCE_MULT_JUMPING = CreateConVar( "cfc_trampoline_bounce_mult_jumping", 1.2, FCVAR_ARCHIVE + FCVAR_PROTECTED, "How much a player will be bounced up relative to their falling velocity while holding their jump button", 0, 50000 )
-local BOUNCE_MAX = CreateConVar( "cfc_trampoline_bounce_max", 1500, FCVAR_ARCHIVE + FCVAR_PROTECTED, "Maximum resulting speed of a bounce", 0, 50000 )
-local BOUNCE_RECOIL = CreateConVar( "cfc_trampoline_bounce_mult_recoil", 0.4, FCVAR_ARCHIVE + FCVAR_PROTECTED, "The force multiplier applied in the opposite direction when bouncing on an unfrozen trampoline", 0, 50000 )
+local flags = FCVAR_ARCHIVE + FCVAR_PROTECTED
+
+local MIN_SPEED = CreateConVar( "cfc_trampoline_min_speed", 320, flags, "Minimum required speed for a player to get bounced", 0, 50000 )
+local BOUNCE_MULT = CreateConVar( "cfc_trampoline_bounce_mult", 0.8, flags, "How much a player will be bounced up relative to their falling velocity", 0, 50000 )
+local BOUNCE_MULT_JUMPING = CreateConVar( "cfc_trampoline_bounce_mult_jumping", 1.2, flags, "How much a player will be bounced up relative to their falling velocity while holding their jump button", 0, 50000 )
+local BOUNCE_MAX = CreateConVar( "cfc_trampoline_bounce_max", 1500, flags, "Maximum resulting speed of a bounce", 0, 50000 )
+local BOUNCE_RECOIL = CreateConVar( "cfc_trampoline_bounce_mult_recoil", 0.4, flags, "The force multiplier applied in the opposite direction when bouncing on an unfrozen trampoline", 0, 50000 )
+
 
 function ENT:PhysicsCollide( colData, selfPhys )
     local ent = colData.HitEntity
