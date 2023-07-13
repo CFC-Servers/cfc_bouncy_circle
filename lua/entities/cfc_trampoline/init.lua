@@ -41,61 +41,53 @@ local BOUNCE_MULT_JUMPING = CreateConVar( "cfc_trampoline_bounce_mult_jumping", 
 local BOUNCE_MAX = CreateConVar( "cfc_trampoline_bounce_max", 1500, flags, "Maximum resulting speed of a bounce", 0, 50000 )
 local BOUNCE_RECOIL = CreateConVar( "cfc_trampoline_bounce_mult_recoil", 0.4, flags, "The force multiplier applied in the opposite direction when bouncing on an unfrozen trampoline", 0, 50000 )
 
+local function bouncePlayer( trampoline, ply, plyPhys, speed )
+    if not IsValid( ply ) then return end
+    if not IsValid( plyPhys ) then return end
 
-function ENT:PhysicsCollide( colData, selfPhys )
-    local ent = colData.HitEntity
-    if not IsValid( ent ) then return end
+    local isHoldingJump = ply:KeyDown( IN_JUMP )
 
-    local isPlayer = ent:IsPlayer()
-
-    local entPos = ent:GetPos()
-    local collidedAt = colData.HitPos
-
-    local isOnUs = isPlayer and ent:GetGroundEntity() == self
-    local pos = isOnUs and entPos or collidedAt
-
-    local shouldBounce = self:isBouncyPart( pos )
-
-    if not shouldBounce then return end
-
-    local isUnfrozen = selfPhys:IsMotionEnabled()
-
-    local up = self:GetUp()
-    local entVelocity = colData.TheirOldVelocity
-
-    local collidingSpeed = math.max( entVelocity:Length(), MIN_SPEED:GetFloat() )
-
-    local appliedVelocity = vector_origin
-
-    local otherEntPhys = ent:GetPhysicsObject()
-    if not IsValid( otherEntPhys ) then return end
-
-    local otherEntMass = otherEntPhys:GetMass()
-
-    if isPlayer then
-        local isHoldingJump = ent:KeyDown( IN_JUMP )
-
-        local bounceMult = isHoldingJump and BOUNCE_MULT_JUMPING:GetFloat() or BOUNCE_MULT:GetFloat()
-        local bounceSpeed = math.min( collidingSpeed * bounceMult, BOUNCE_MAX:GetFloat() )
-
-        if isUnfrozen then
-            -- hacky solution to bounce players when the trampoline is unfrozen
-            otherEntPhys:SetPos( otherEntPhys:GetPos() + up * 5 )
-        end
-
-        appliedVelocity = up * bounceSpeed
-
-        ent:SetVelocity( appliedVelocity )
-    elseif not ent:IsNPC() then
-        local bounceSpeed = math.min( collidingSpeed, BOUNCE_MAX:GetFloat() )
-        appliedVelocity = up * bounceSpeed
-
-        otherEntPhys:ApplyForceCenter( appliedVelocity * otherEntMass )
-    end
+    local bounceMult = isHoldingJump and BOUNCE_MULT_JUMPING:GetFloat() or BOUNCE_MULT:GetFloat()
+    local bounceSpeed = math.min( speed * bounceMult, BOUNCE_MAX:GetFloat() )
+    local up = trampoline:GetUp()
 
     if isUnfrozen then
-        selfPhys:ApplyForceCenter( -appliedVelocity * BOUNCE_RECOIL:GetFloat() * otherEntMass )
+        -- hacky solution to bounce players when the trampoline is unfrozen
+        plyPhys:SetPos( plyPhys:GetPos() + up * 5 )
     end
+
+    local appliedVelocity = up * bounceSpeed
+    ply:SetVelocity( appliedVelocity )
+
+    return appliedVelocity
+end
+
+local function bounceOther( trampoline, entPhys, speed )
+    if not IsValid( trampoline ) then return end
+    if not IsValid( entPhys ) then return end
+
+    local up = trampoline:GetUp()
+
+    local bounceSpeed = math.min( speed, BOUNCE_MAX:GetFloat() )
+    local appliedVelocity = up * bounceSpeed
+
+    entPhys:ApplyForceCenter( appliedVelocity * entPhys:GetMass() )
+    return appliedVelocity
+end
+
+function ENT:Bounce( ent, theirPhys, speed )
+    if not IsValid( self ) then return end
+    if not IsValid( ent ) then return end
+    if not IsValid( theirPhys ) then return end
+
+    local appliedVelocity = vector_origin
+    if ent:IsPlayer() then
+        appliedVelocity = bouncePlayer( self, ent, theirPhys, speed )
+    elseif not ent:IsNPC() then
+        appliedVelocity = bounceOther( self, theirPhys, speed )
+    end
+
+    return appliedVelocity
 end
 
 function ENT:SpawnFunction( ply, tr )
@@ -113,20 +105,31 @@ function ENT:SpawnFunction( ply, tr )
     return ent
 end
 
-function ENT:Initialize()
-    self:SetModel( "models/cfc/trampoline.mdl" )
-    self:SetTrigger( true )
+function ENT:StartTouch( ent )
+    if ent:IsWorld() then return end
+    if ent.Trampoline_Bouncing then return end
 
-    self:SetMoveType( MOVETYPE_VPHYSICS )
-    self:SetSolid( SOLID_VPHYSICS )
+    local tr = self:GetTouchTrace()
+    local pos = tr.HitPos
 
-    self:PhysicsInit( SOLID_VPHYSICS )
+    local shouldBounce = self:isBouncyPart( pos )
+    if not shouldBounce then return end
 
-    self:PhysWake()
-    local phys = self:GetPhysicsObject()
+    -- Just a safety measure. Makes sure Bounce can't be called until EndTouch is called again
+    ent.Trampoline_Bouncing = true
+    local theirPhys = ent:GetPhysicsObject()
 
-    if not IsValid( phys ) then return end
-    phys:SetMass( 250 )
+    local appliedVelocity = self:Bounce( ent, theirPhys, math.max( ent:GetVelocity():Length(), MIN_SPEED:GetFloat() ) )
+
+    local myPhys = self:GetPhysicsObject()
+
+    if myPhys:IsMotionEnabled() then
+        myPhys:ApplyForceCenter( -appliedVelocity * BOUNCE_RECOIL:GetFloat() * theirPhys:GetMass() )
+    end
+end
+
+function ENT:EndTouch( e )
+    e.Trampoline_Bouncing = nil
 end
 
 local world = game.GetWorld()
