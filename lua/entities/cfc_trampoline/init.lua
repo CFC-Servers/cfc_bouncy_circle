@@ -48,10 +48,11 @@ function ENT:PhysicsCollide( colData, selfPhys )
 
     local isPlayer = ent:IsPlayer()
 
-    -- if this entity is a player, and the ground entity is us
-    -- then we use their GetPos()
-    -- otherwise, we use colData.HitPos
-    local pos = isPlayer and ent:GetGroundEntity() == self and ent:GetPos() or colData.HitPos
+    local entPos = ent:GetPos()
+    local collidedAt = colData.HitPos
+
+    local isOnUs = isPlayer and ent:GetGroundEntity() == self
+    local pos = isOnUs and entPos or collidedAt
 
     local shouldBounce = self:isBouncyPart( pos )
 
