@@ -9,11 +9,11 @@ include( "shared.lua" )
 -- this is so we get slightly above the trampoline
 -- because the GetPos returns a position near the ground, we get
 -- the point [self:GetUp()] * [HEIGHT_TO_BOUNCY_SURFACE] from it
-local HEIGHT_TO_BOUNCY_SURFACE = 34.5
+local HEIGHT_TO_BOUNCY_SURFACE = 29.5
 
 -- maximum radius the trampoline will allow
 -- this is used in DistToSqr
-local MAXIMUM_RADIUS = 48 ^ 2
+local MAXIMUM_RADIUS = 60 ^ 2
 
 function ENT:isBouncyPart( position )
     if not IsValid( self ) then return end
@@ -35,7 +35,7 @@ end
 
 local flags = FCVAR_ARCHIVE + FCVAR_PROTECTED
 
-local MIN_SPEED = CreateConVar( "cfc_trampoline_min_speed", 320, flags, "Minimum required speed for a player to get bounced", 0, 50000 )
+local BOUNCE_MIN = CreateConVar( "cfc_trampoline_bounce_min", 320, flags, "Minimum resulting speed of a bounce", 0, 50000 )
 local BOUNCE_MULT = CreateConVar( "cfc_trampoline_bounce_mult", 0.8, flags, "How much a player will be bounced up relative to their falling velocity", 0, 50000 )
 local BOUNCE_MULT_JUMPING = CreateConVar( "cfc_trampoline_bounce_mult_jumping", 1.2, flags, "How much a player will be bounced up relative to their falling velocity while holding their jump button", 0, 50000 )
 local BOUNCE_MAX = CreateConVar( "cfc_trampoline_bounce_max", 1500, flags, "Maximum resulting speed of a bounce", 0, 50000 )
@@ -90,19 +90,32 @@ function ENT:Bounce( ent, theirPhys, speed )
     return appliedVelocity
 end
 
-function ENT:SpawnFunction( ply, tr )
-    if not tr.Hit then return end
-    if not ply:CheckLimit( "cfc_trampoline" ) then return end
+local function MakeTrampoline( ply, Data )
+    if IsValid( ply ) and not ply:CheckLimit( "cfc_trampoline" ) then return nil end
+    if Data.Model and not WireLib.CanModel( ply, Data.Model, Data.Skin ) then return false end
 
-    local ent = ents.Create( self.ClassName )
-    ent:SetPos( tr.HitPos )
-    ent:SetAngles( Angle( 0, ply:EyeAngles().y, 0 ) )
+    local ent = ents.Create( "cfc_trampoline" )
+    if not ent:IsValid() then return end
+    duplicator.DoGeneric( ent, Data )
     ent:Spawn()
     ent:Activate()
 
-    ply:AddCount( "cfc_trampoline", ent )
+    duplicator.DoGenericPhysics( ent, ply, Data )
+
+    if IsValid( ply ) then
+        ply:AddCount( "cfc_trampoline", ent )
+        ply:AddCleanup( "cfc_trampoline", ent )
+    end
 
     return ent
+end
+
+duplicator.RegisterEntityClass( "cfc_trampoline", MakeTrampoline, "Data" )
+
+function ENT:SpawnFunction( ply, tr )
+    if not tr.Hit then return end
+
+    return MakeTrampoline( ply, { Pos = tr.HitPos } )
 end
 
 function ENT:StartTouch( ent )
@@ -119,7 +132,7 @@ function ENT:StartTouch( ent )
     ent.Trampoline_Bouncing = true
     local theirPhys = ent:GetPhysicsObject()
 
-    local appliedVelocity = self:Bounce( ent, theirPhys, math.max( ent:GetVelocity():Length(), MIN_SPEED:GetFloat() ) )
+    local appliedVelocity = self:Bounce( ent, theirPhys, math.max( ent:GetVelocity():Length(), BOUNCE_MIN:GetFloat() ) )
 
     local myPhys = self:GetPhysicsObject()
 
