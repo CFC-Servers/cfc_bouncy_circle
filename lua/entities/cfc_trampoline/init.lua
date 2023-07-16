@@ -35,6 +35,7 @@ end
 
 local flags = FCVAR_ARCHIVE + FCVAR_PROTECTED
 
+local MIN_SPEED = CreateConVar( "cfc_trampoline_min_speed", 180, flags, "Minimum speed required to bounce off of a trampoline", 0, 50000 )
 local BOUNCE_MIN = CreateConVar( "cfc_trampoline_bounce_min", 320, flags, "Minimum resulting speed of a bounce", 0, 50000 )
 local BOUNCE_MULT = CreateConVar( "cfc_trampoline_bounce_mult", 0.8, flags, "How much a player will be bounced up relative to their falling velocity", 0, 50000 )
 local BOUNCE_MULT_JUMPING = CreateConVar( "cfc_trampoline_bounce_mult_jumping", 1.2, flags, "How much a player will be bounced up relative to their falling velocity while holding their jump button", 0, 50000 )
@@ -132,7 +133,14 @@ function ENT:StartTouch( ent )
     ent.Trampoline_Bouncing = true
     local theirPhys = ent:GetPhysicsObject()
 
-    local appliedVelocity = self:Bounce( ent, theirPhys, math.max( ent:GetVelocity():Length(), BOUNCE_MIN:GetFloat() ) )
+    -- negate because velocity will be the opposite direction
+    local myUp = -self:GetUp()
+    local vel = ent:GetVelocity()
+
+    local upSpeed = vel:Dot( myUp )
+    if upSpeed < MIN_SPEED:GetFloat() then return end
+
+    local appliedVelocity = self:Bounce( ent, theirPhys, math.max( upSpeed, BOUNCE_MIN:GetFloat() ) )
 
     local myPhys = self:GetPhysicsObject()
 
