@@ -134,10 +134,10 @@ function ENT:StartTouch( ent )
     local theirPhys = ent:GetPhysicsObject()
 
     -- negate because velocity will be the opposite direction
-    local myUp = -self:GetUp()
+    local trampolineDown = -self:GetUp()
     local vel = ent:GetVelocity()
 
-    local upSpeed = vel:Dot( myUp )
+    local upSpeed = vel:Dot( trampolineDown )
     if upSpeed < MIN_SPEED:GetFloat() then return end
 
     local appliedVelocity = self:Bounce( ent, theirPhys, math.max( upSpeed, BOUNCE_MIN:GetFloat() ) )
