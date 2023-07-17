@@ -15,24 +15,6 @@ local HEIGHT_TO_BOUNCY_SURFACE = 29.5
 -- this is used in DistToSqr
 local MAXIMUM_RADIUS = 60 ^ 2
 
-function ENT:isBouncyPart( position )
-    if not IsValid( self ) then return end
-
-    local trampolinePos = self:GetPos()
-    local trampolineUp = self:GetUp()
-    local bouncyOrigin = trampolinePos + trampolineUp * HEIGHT_TO_BOUNCY_SURFACE
-
-    local dist = position:DistToSqr( bouncyOrigin )
-    if dist > MAXIMUM_RADIUS then return false end -- Too far from center of the bouncy part
-
-    local bouncyToPos = ( position - bouncyOrigin ):GetNormalized()
-
-    local dot = bouncyToPos:Dot( trampolineUp )
-    if dot <= 0 then return false end -- Hitting from below
-
-    return true
-end
-
 local flags = FCVAR_ARCHIVE + FCVAR_PROTECTED
 
 local MIN_SPEED = CreateConVar( "cfc_trampoline_min_speed", 180, flags, "Minimum speed required to bounce off of a trampoline", 0, 50000 )
@@ -113,15 +95,48 @@ end
 
 duplicator.RegisterEntityClass( "cfc_trampoline", MakeTrampoline, "Data" )
 
+function ENT:isBouncyPart( position )
+    if not IsValid( self ) then return end
+
+    local trampolinePos = self:GetPos()
+    local trampolineUp = self:GetUp()
+    local bouncyOrigin = trampolinePos + trampolineUp * HEIGHT_TO_BOUNCY_SURFACE
+
+    local dist = position:DistToSqr( bouncyOrigin )
+    if dist > MAXIMUM_RADIUS then return false end -- Too far from center of the bouncy part
+
+    local bouncyToPos = ( position - bouncyOrigin ):GetNormalized()
+
+    local dot = bouncyToPos:Dot( trampolineUp )
+    if dot <= 0 then return false end -- Hitting from below
+
+    return true
+end
+
 function ENT:SpawnFunction( ply, tr )
     if not tr.Hit then return end
 
     return MakeTrampoline( ply, { Pos = tr.HitPos } )
 end
 
+local collisionVels = {}
+
+function ENT:PhysicsCollide( colData )
+    local ent = colData.HitEntity
+    if not IsValid( ent ) then return end
+    if ent:IsPlayer() then return end -- Players are handled differently
+    if collisionVels[ent] then return end -- Only store vel if this is part of a new bounce
+    if not self:isBouncyPart( colData.HitPos ) then return end
+
+    collisionVels[ent] = colData.TheirOldVelocity
+end
+
 function ENT:StartTouch( ent )
     if ent:IsWorld() then return end
     if ent.Trampoline_Bouncing then return end
+
+    local entVel = collisionVels[ent] or ent:GetVelocity()
+    collisionVels[ent] = nil -- Remove from velocity cache
 
     local tr = self:GetTouchTrace()
     local pos = tr.HitPos
@@ -135,9 +150,7 @@ function ENT:StartTouch( ent )
 
     -- negate because velocity will be the opposite direction
     local trampolineDown = -self:GetUp()
-    local vel = ent:GetVelocity()
-
-    local upSpeed = vel:Dot( trampolineDown )
+    local upSpeed = entVel:Dot( trampolineDown )
     if upSpeed < MIN_SPEED:GetFloat() then return end
 
     local appliedVelocity = self:Bounce( ent, theirPhys, math.max( upSpeed, BOUNCE_MIN:GetFloat() ) )
