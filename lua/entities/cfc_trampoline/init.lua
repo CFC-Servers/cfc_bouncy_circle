@@ -6,6 +6,7 @@ AddCSLuaFile( "shared.lua" )
 
 include( "shared.lua" )
 
+local IN_JUMP = IN_JUMP
 local IsValid = IsValid
 
 -- this is so we get slightly above the trampoline
