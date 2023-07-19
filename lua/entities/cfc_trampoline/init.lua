@@ -126,8 +126,8 @@ local collisionVels = {}
 function ENT:PhysicsCollide( colData )
     local ent = colData.HitEntity
     if not IsValid( ent ) then return end
-    if ent:IsPlayer() then return end -- Players are handled differently
     if collisionVels[ent] then return end -- Only store vel if this is part of a new bounce
+    if ent:IsPlayer() then return end -- Players are handled differently
     if not self:isBouncyPart( colData.HitPos ) then return end
 
     collisionVels[ent] = colData.TheirOldVelocity
