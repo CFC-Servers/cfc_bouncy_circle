@@ -6,6 +6,8 @@ AddCSLuaFile( "shared.lua" )
 
 include( "shared.lua" )
 
+local IsValid = IsValid
+
 -- this is so we get slightly above the trampoline
 -- because the GetPos returns a position near the ground, we get
 -- the point [self:GetUp()] * [HEIGHT_TO_BOUNCY_SURFACE] from it
