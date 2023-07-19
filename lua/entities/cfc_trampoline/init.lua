@@ -75,7 +75,6 @@ end
 
 local function MakeTrampoline( ply, Data )
     if IsValid( ply ) and not ply:CheckLimit( "cfc_trampoline" ) then return nil end
-    if Data.Model and not WireLib.CanModel( ply, Data.Model, Data.Skin ) then return false end
 
     local ent = ents.Create( "cfc_trampoline" )
     if not ent:IsValid() then return end
