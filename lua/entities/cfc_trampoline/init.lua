@@ -76,7 +76,8 @@ function ENT:Bounce( ent, theirPhys, speed )
 end
 
 local function MakeTrampoline( ply, Data )
-    if IsValid( ply ) and not ply:CheckLimit( "cfc_trampoline" ) then return nil end
+    local validPly = IsValid( ply )
+    if validPly and not ply:CheckLimit( "cfc_trampoline" ) then return nil end
 
     local ent = ents.Create( "cfc_trampoline" )
     if not ent:IsValid() then return end
@@ -86,7 +87,7 @@ local function MakeTrampoline( ply, Data )
 
     duplicator.DoGenericPhysics( ent, ply, Data )
 
-    if IsValid( ply ) then
+    if validPly then
         ply:AddCount( "cfc_trampoline", ent )
         ply:AddCleanup( "cfc_trampoline", ent )
     end
