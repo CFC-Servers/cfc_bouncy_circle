@@ -37,6 +37,7 @@ local function bouncePlayer( trampoline, ply, plyPhys, speed )
     local bounceSpeed = math.min( speed * bounceMult, BOUNCE_MAX:GetFloat() )
     local up = trampoline:GetUp()
 
+    local isUnfrozen = trampoline:GetPhysicsObject():IsMotionEnabled()
     if isUnfrozen then
         -- hacky solution to bounce players when the trampoline is unfrozen
         plyPhys:SetPos( plyPhys:GetPos() + up * 5 )
