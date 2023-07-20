@@ -1,5 +1,5 @@
-resource.AddFile( "models/cfc/trampoline.mdl" )
-resource.AddFile( "materials/models/cfc/trampoline.vmt" )
+resource.AddFile( "models/cfc/cfc_trampoline.mdl" )
+resource.AddFile( "materials/models/cfc/cfc_trampoline.vmt" )
 
 AddCSLuaFile( "cl_init.lua" )
 AddCSLuaFile( "shared.lua" )

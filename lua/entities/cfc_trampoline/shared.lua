@@ -11,7 +11,7 @@ ENT.IsTrampoline = true
 CreateConVar( "sbox_maxcfc_trampoline", 5, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Maximum amount of trampolines owned by a player at once." )
 
 function ENT:Initialize()
-    self:SetModel( "models/cfc/trampoline.mdl" )
+    self:SetModel( "models/cfc/cfc_trampoline.mdl" )
     if SERVER then
         self:SetTrigger( true )
         self:PhysicsInit( SOLID_VPHYSICS )
