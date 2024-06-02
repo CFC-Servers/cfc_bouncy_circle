@@ -159,6 +159,8 @@ function ENT:StartTouch( ent )
     local upSpeed = entVel:Dot( trampolineDown )
     if upSpeed < MIN_SPEED:GetFloat() then return end
 
+    self:EmitSound( "cfc_trampoline_bounce.wav" )
+
     local appliedVelocity = self:Bounce( ent, theirPhys, math.max( upSpeed, BOUNCE_MIN:GetFloat() ) )
 
     local myPhys = self:GetPhysicsObject()
