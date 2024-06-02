@@ -4,6 +4,7 @@ AddCSLuaFile( "cl_init.lua" )
 AddCSLuaFile( "shared.lua" )
 
 include( "shared.lua" )
+util.AddNetworkString( "CFC_BouncyCircle_PlayBounceSound" )
 
 local IN_JUMP = IN_JUMP
 local IsValid = IsValid
@@ -159,7 +160,9 @@ function ENT:StartTouch( ent )
     local upSpeed = entVel:Dot( trampolineDown )
     if upSpeed < MIN_SPEED:GetFloat() then return end
 
-    self:EmitSound( "cfc_trampoline_bounce.wav" )
+    net.Start( "CFC_BouncyCircle_PlayBounceSound" )
+    net.WriteEntity( self )
+    net.SendPAS( self:GetPos() )
 
     local appliedVelocity = self:Bounce( ent, theirPhys, math.max( upSpeed, BOUNCE_MIN:GetFloat() ) )
 
