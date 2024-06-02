@@ -74,6 +74,10 @@ function ENT:Bounce( ent, theirPhys, speed )
         appliedVelocity = bounceOther( self, theirPhys, speed )
     end
 
+    net.Start( "CFC_BouncyCircle_PlayBounceSound" )
+    net.WriteEntity( self )
+    net.SendPAS( self:GetPos() )
+
     return appliedVelocity
 end
 
@@ -159,10 +163,6 @@ function ENT:StartTouch( ent )
     local trampolineDown = -self:GetUp()
     local upSpeed = entVel:Dot( trampolineDown )
     if upSpeed < MIN_SPEED:GetFloat() then return end
-
-    net.Start( "CFC_BouncyCircle_PlayBounceSound" )
-    net.WriteEntity( self )
-    net.SendPAS( self:GetPos() )
 
     local appliedVelocity = self:Bounce( ent, theirPhys, math.max( upSpeed, BOUNCE_MIN:GetFloat() ) )
 
