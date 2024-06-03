@@ -31,6 +31,13 @@ local function bouncePlayer( trampoline, ply, plyPhys, speed )
     if not IsValid( ply ) then return end
     if not IsValid( plyPhys ) then return end
 
+    if trampoline:IsPlayerHolding() then
+        local wep = ply:GetActiveWeapon()
+        if IsValid( wep ) and wep:GetClass() == "weapon_physgun" then
+            return
+        end
+    end
+
     local isHoldingJump = ply:KeyDown( IN_JUMP )
 
     local bounceMult = isHoldingJump and BOUNCE_MULT_JUMPING:GetFloat() or BOUNCE_MULT:GetFloat()
