@@ -172,6 +172,7 @@ function ENT:StartTouch( ent )
     if upSpeed < MIN_SPEED:GetFloat() then return end
 
     local appliedVelocity = self:Bounce( ent, theirPhys, math.max( upSpeed, BOUNCE_MIN:GetFloat() ) )
+    if not appliedVelocity then return end
 
     local myPhys = self:GetPhysicsObject()
 
