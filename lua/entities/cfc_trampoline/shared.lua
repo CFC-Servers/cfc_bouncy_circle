@@ -105,7 +105,7 @@ hook.Add( "SetupMove", "Trampoline_Prediction", function( ply, mv, cmd ) -- BUG:
 	local ent = ply:GetGroundEntity()
 	local plyIndex = ply:EntIndex()
 	if ent ~= NULL then
-		if ent:GetClass() == ent_class and ent:isBouncyPart( ply:GetPos() ) then
+		if ent:GetClass() == ent_class and ent.isBouncyPart and ent:isBouncyPart( ply:GetPos() ) then
 			local lastVel = LAST_VELOCITY[ plyIndex ]
 			if not lastVel then
 				lastVel = mv:GetVelocity()
