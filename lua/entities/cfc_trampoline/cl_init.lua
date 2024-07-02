@@ -12,6 +12,8 @@ end
 net.Receive( "CFC_BouncyCircle_PlayBounceSound", function()
     local ent = net.ReadEntity()
     if not IsValid( ent ) then return end
+    if ent:GetClass() ~= "cfc_trampoline" then return end
+    if not ent.bounceSound then return end
 
     ent:bounceSound()
 end )
